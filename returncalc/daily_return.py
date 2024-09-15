@@ -1,19 +1,11 @@
+import concurrent.futures
+import datetime as dt
+
 import numpy as np
 import pandas as pd
-import pytz
-import ray
 import yfinance as yf  # type: ignore
 
-# Ray 초기화
-ray.init()
-
-# 미국 동부 시간대 설정 (EST/EDT)
-eastern = pytz.timezone("US/Eastern")
-
-# 주식 목록 (필터링 후 상위 20개 주식, 예시로 사용)
-filtered_df = pd.read_csv("volume_ratio_score.csv")
-stock_list = filtered_df["Ticker"].tolist()  # 필터링된 주식 리스트를 여기에 입력
-# stock_list = ["AAPL", "MSFT", "GOOG", "AMZN", "TSLA"]  # 상위 20개 주식으로 교체 필요
+start_date = dt.datetime.strptime("2024-09-13", "%Y-%m-%d").date()
 
 
 # ATR 계산 함수 (14일간)
@@ -27,12 +19,11 @@ def calculate_atr(data, period=14):
 
 
 # 수익률 계산 함수
-@ray.remote
 def calculate_return_with_strategy(ticker):  # noqa: C901
     stock = yf.Ticker(ticker)
 
     # 5분 데이터
-    data_5min = stock.history(period="1d", interval="5m")
+    data_5min = stock.history(start=start_date, interval="5m")
     if len(data_5min) == 0:
         return None
 
@@ -46,12 +37,14 @@ def calculate_return_with_strategy(ticker):  # noqa: C901
     daily_close = data_5min["Close"].iloc[-1]
 
     # 14일간의 일일 데이터 (ATR 계산을 위한 데이터)
-    data_daily = stock.history(period="1mo", interval="1d")
-    if len(data_daily) < 14:
+    # TODO: 백테스트 기간 설정하고 싶으면 end 수정해야 함
+    data_daily = stock.history(start=start_date - dt.timedelta(days=30), interval="1d")
+    recent_data = data_daily.tail(14)
+    if len(recent_data) < 14:
         return None
 
     # ATR 계산 (True Range)
-    atr = calculate_atr(data_daily).iloc[-1]  # 가장 최신 ATR 값
+    atr = calculate_atr(recent_data).iloc[-1]  # 가장 최신 ATR 값
 
     # ATR 기준 손절매 폭 설정 (ATR * 10%)
     stop_loss_threshold = atr * 0.10
@@ -94,27 +87,10 @@ def calculate_return_with_strategy(ticker):  # noqa: C901
 
 
 # 주식 데이터를 병렬로 처리하고 수익률 계산
-def process_stocks_for_return(stock_list):
-    futures = [calculate_return_with_strategy.remote(stock) for stock in stock_list]
-    results = ray.get(futures)
-    stock_returns = [result for result in results if result is not None]
-    return stock_returns
-
-
-# 주식 데이터를 병렬로 처리하여 수익률 계산
-stock_returns = process_stocks_for_return(stock_list)
-
-# 결과 출력
-returns_df = pd.DataFrame(stock_returns, columns=["Ticker", "Daily Return"])
-head_20_returns_df = returns_df.head(20)
-print(head_20_returns_df)
-
-# 승률 계산
-print(f"Hit Ratio: {((head_20_returns_df['Daily Return'] > 0).mean()):.2%}")
-
-# 수익률 계산
-average_return = head_20_returns_df["Daily Return"].sum()
-print(f"Daily Total Return: {average_return:.2%}")
-
-# Ray 종료
-ray.shutdown()
+def calculate_return_concurrently(date_range_dir, start_date):
+    filtered_df = pd.read_csv(f"{date_range_dir}/volume_ratio_score.csv")
+    stock_list = filtered_df["Ticker"].tolist()  # 필터링된 주식 리스트를 여기에 입력
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = list(executor.map(calculate_return_with_strategy, stock_list))
+    filtered_stocks = [r for r in results if r is not None]
+    return filtered_stocks

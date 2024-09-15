@@ -227,5 +227,6 @@ pyrightconfig.json
 
 # Generated Data
 *.csv
+/gen_data
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,visualstudiocode,python
