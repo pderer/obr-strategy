@@ -10,34 +10,33 @@ git clone https://github.com/rreichel3/US-Stock-Symbols.git
 
 # Manual
 ```
-python basic_filter.py
-python relative_volume_score.py
-python daily_return.py
+python backtest.py -h
+python backtest.py --start_date 2024-09-13 --end_date 2024-09-13
 ```
 
 # Result
 ```
    Ticker  Daily Return
 0    SILK      0.000182
-1      RH      0.030198
-2    ADBE     -0.000976
-3    SCHW     -0.002175
-4    VSAT     -0.008356
-5    UBER     -0.003159
+1    ADBE     -0.000976
+2    SCHW     -0.002175
+3    VSAT     -0.008356
+4    UBER     -0.003159
+5    ORCL      0.054739
 6     RLJ     -0.002155
 7    ENVX     -0.007061
-8    LYFT     -0.004662
-9    ORCL      0.054739
-10    MCW      0.023438
+8     WFC     -0.003215
+9     PCT      0.041420
+10  FWONK     -0.001742
 11   ETSY      0.011364
-12    WFC     -0.003215
-13   BORR     -0.004789
-14    PDD      0.014199
-15   FIVE     -0.004559
-16    PCT      0.041420
-17      W     -0.005045
-18   BNTX      0.126015
-19   APLS      0.014567
-Hit Ratio: 45.00%
-Daily Total Return: 27.00%
+12    MCW      0.023438
+13   RPAY     -0.003412
+14   TNON     -0.013942
+15   APLS      0.014567
+16   LYFT     -0.004662
+17      U     -0.006571
+18    KGC     -0.003281
+19      W     -0.005045
+Hit Ratio: 30.00%
+Daily Total Return: 8.00%
 ```
