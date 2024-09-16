@@ -25,6 +25,7 @@ def get_stock(ticker):
     first_5min_volume = first_data["Volume"].iloc[0]
     volumes = []
     for day, group in reversed(list(data.groupby(data.index.date))):
+        print(day)
         print(group)
         first_5min = group.iloc[0]  # 첫 5분의 데이터
         volumes.append(first_5min["Volume"])

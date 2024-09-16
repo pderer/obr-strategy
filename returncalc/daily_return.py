@@ -1,11 +1,10 @@
 import concurrent.futures
 import datetime as dt
+from functools import partial
 
 import numpy as np
 import pandas as pd
 import yfinance as yf  # type: ignore
-
-start_date = dt.datetime.strptime("2024-09-13", "%Y-%m-%d").date()
 
 
 # ATR 계산 함수 (14일간)
@@ -19,15 +18,15 @@ def calculate_atr(data, period=14):
 
 
 # 수익률 계산 함수
-def calculate_return_with_strategy(ticker):  # noqa: C901
+def daily_return(ticker, start_date_time, end_date_time):  # noqa: C901
     stock = yf.Ticker(ticker)
 
     # 5분 데이터
-    data_5min = stock.history(start=start_date, interval="5m")
+    data_5min = stock.history(start=start_date_time, end=end_date_time, interval="5m")
+
     if len(data_5min) == 0:
         return None
 
-    # 첫 5분 봉 데이터
     first_5min_open = data_5min["Open"].iloc[0]
     first_5min_close = data_5min["Close"].iloc[0]
     first_5min_high = data_5min["High"].iloc[0]
@@ -38,8 +37,11 @@ def calculate_return_with_strategy(ticker):  # noqa: C901
 
     # 14일간의 일일 데이터 (ATR 계산을 위한 데이터)
     # TODO: 백테스트 기간 설정하고 싶으면 end 수정해야 함
-    data_daily = stock.history(start=start_date - dt.timedelta(days=30), interval="1d")
+    data_daily = stock.history(
+        start=start_date_time - dt.timedelta(days=30), end=end_date_time, interval="1d"
+    )
     recent_data = data_daily.tail(14)
+
     if len(recent_data) < 14:
         return None
 
@@ -87,10 +89,13 @@ def calculate_return_with_strategy(ticker):  # noqa: C901
 
 
 # 주식 데이터를 병렬로 처리하고 수익률 계산
-def calculate_return_concurrently(date_range_dir, start_date):
-    filtered_df = pd.read_csv(f"{date_range_dir}/volume_ratio_score.csv")
-    stock_list = filtered_df["Ticker"].tolist()  # 필터링된 주식 리스트를 여기에 입력
+def calculate_return_concurrently(stock_list, start_date_time, end_date_time):
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        results = list(executor.map(calculate_return_with_strategy, stock_list))
-    filtered_stocks = [r for r in results if r is not None]
-    return filtered_stocks
+        process_with_date = partial(
+            daily_return,
+            start_date_time=start_date_time,
+            end_date_time=end_date_time,
+        )
+        results = list(executor.map(process_with_date, stock_list))
+    daily_return_list = [r for r in results if r is not None]
+    return daily_return_list

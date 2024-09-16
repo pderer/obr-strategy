@@ -1,5 +1,6 @@
 import concurrent.futures
 import datetime as dt
+from functools import partial
 
 import numpy as np
 import yfinance as yf  # type: ignore
@@ -8,8 +9,6 @@ OPEN_PRICE_THRESHOLD = 5.0
 AVERAGE_VOLUME_THRESHOLD = 1_000_000
 ATR_THRESHOLD = 0.5
 LOOKBACK_DAYS = 14
-
-start_date = dt.datetime.strptime("2024-09-13", "%Y-%m-%d").date()
 
 
 def calculate_atr(data, period=14):
@@ -22,11 +21,13 @@ def calculate_atr(data, period=14):
     return atr
 
 
-def process_ticker(ticker):
+def process_ticker(ticker, start_date_time, end_date_time):
     try:
         stock = yf.Ticker(ticker)
         data = stock.history(
-            start=start_date - dt.timedelta(days=30), end=start_date, interval="1d"
+            start=start_date_time - dt.timedelta(days=30),
+            end=end_date_time,
+            interval="1d",
         )
 
         recent_data = data.tail(14)
@@ -56,8 +57,11 @@ def process_ticker(ticker):
 
 
 # 병렬 처리로 모든 티커에 대해 필터링 적용
-def filter_stocks_concurrently(stock_list):
+def filter_stocks_concurrently(stock_list, start_date_time, end_date_time):
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        results = list(executor.map(process_ticker, stock_list))
+        process_with_date = partial(
+            process_ticker, start_date_time=start_date_time, end_date_time=end_date_time
+        )
+        results = list(executor.map(process_with_date, stock_list))
     filtered_stocks = [r for r in results if r is not None]
     return filtered_stocks

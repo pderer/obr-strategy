@@ -1,6 +1,6 @@
 import argparse
-import datetime as dt
 import os
+from datetime import datetime, time
 
 import pandas as pd
 
@@ -32,31 +32,46 @@ def main():
     args = parser.parse_args()
 
     # 입력받은 시작 및 종료 날짜를 datetime 객체로 변환
-    start_date = dt.datetime.strptime(args.start_date, "%Y-%m-%d").date()
-    end_date = dt.datetime.strptime(args.end_date, "%Y-%m-%d").date()
+    temp_start_date = datetime.strptime(args.start_date, "%Y-%m-%d").date()
+    temp_end_date = datetime.strptime(args.end_date, "%Y-%m-%d").date()
+    start_date_time = datetime.combine(temp_start_date, time.min)
+    end_date_time = datetime.combine(temp_end_date, time.max)
     current_dir = os.getcwd()
     gen_data_dir = os.path.join(current_dir, "gen_data")
     os.makedirs(gen_data_dir, exist_ok=True)
 
     # 현재 날짜와 시간을 기반으로 디렉토리 이름 생성
-    date_range_dir_name = f"{start_date}~{end_date}"
+    date_range_dir_name = f"{temp_start_date}~{temp_end_date}"
     date_range_dir = os.path.join(gen_data_dir, date_range_dir_name)
     os.makedirs(date_range_dir, exist_ok=True)
 
     print("---------------basic filtering start-------------------")
-    filtered_stocks = basic_filter.filter_stocks_concurrently(stock_list)
+
+    filtered_stocks = basic_filter.filter_stocks_concurrently(
+        stock_list, start_date_time, end_date_time
+    )
     filtered_df = pd.DataFrame(filtered_stocks, columns=["Ticker"])
     filtered_df.to_csv(f"{date_range_dir}/filtered_stocks_by_ray.csv", index=False)
+
     print("---------------basic filtering end-------------------")
     print("---------------relative volume score filtering start---------------")
-    volume_scores = relative_volume_score.filter_stocks_concurrently(date_range_dir)
+
+    filtered_stocks = filtered_df["Ticker"].tolist()
+    volume_scores = relative_volume_score.filter_stocks_concurrently(
+        filtered_stocks, start_date_time, end_date_time
+    )
     sorted_volume_scores = sorted(volume_scores, key=lambda x: x[1], reverse=True)
     top_40_stocks = sorted_volume_scores[:40]
     sorted_df = pd.DataFrame(top_40_stocks, columns=["Ticker", "Volume Ratio"])
     sorted_df.to_csv(f"{date_range_dir}/volume_ratio_score.csv", index=False)
+
     print("---------------relative volume score filtering end---------------")
     print("-----------------calculate return start---------------------")
-    results = daily_return.calculate_return_concurrently(date_range_dir, start_date)
+
+    sorted_stocks = sorted_df["Ticker"].tolist()
+    results = daily_return.calculate_return_concurrently(
+        sorted_stocks, start_date_time, end_date_time
+    )
     results_df = pd.DataFrame(results, columns=["Ticker", "Daily Return"])
     head_20_results_df = results_df.head(20)
     print(head_20_results_df)
