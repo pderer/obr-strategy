@@ -229,4 +229,7 @@ pyrightconfig.json
 *.csv
 /gen_data
 
+# Other Git Repository
+US-Stock-Symbols/
+
 # End of https://www.toptal.com/developers/gitignore/api/macos,visualstudiocode,python
