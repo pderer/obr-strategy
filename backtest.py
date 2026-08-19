@@ -26,7 +26,7 @@ stock_symbols_path = os.path.join(
     "all_tickers.txt",
 )
 
-def basic_fitering(start_date_time, end_date_time, date_dir):
+def basic_filtering(start_date_time, end_date_time, date_dir):
     print("---------------basic filtering start-------------------")
     # 주식 목록 (필요시 Nasdaq 주식 목록을 사용)
     stock_df = pd.read_csv(
@@ -97,7 +97,6 @@ def main():
     )
     args = parser.parse_args()
 
-    current_dir = os.getcwd()
     gen_data_dir = os.path.join(BASE_DIR, "gen_data")
     os.makedirs(gen_data_dir, exist_ok=True)
 
@@ -147,7 +146,7 @@ def main():
         end_date_time = datetime.combine(trading_day, time.max)
 
         if os.path.isfile(f"{date_dir}/filtered_stocks.csv") is False:
-            basic_fitering(start_date_time, end_date_time, date_dir)
+            basic_filtering(start_date_time, end_date_time, date_dir)
 
         if os.path.isfile(f"{date_dir}/volume_ratio_score.csv") is False:
             date_14_business_days_ago = (
