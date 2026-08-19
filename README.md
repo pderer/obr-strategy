@@ -1,42 +1,151 @@
-# Opening Range Breakout Trading Bot
-A Profitable Day Trading Strategy For The U.S. Equity Market 논문을 보고 만든 트레이딩 봇
+# Opening Range Breakout (ORB) Backtester
 
-# Installation
-Trading Bot Repository를 Clone 받은 디렉토리에서 US-Stock-Symbols를 Clone 받음
+A Python backtesting implementation of the **5-minute Opening Range Breakout (ORB)** strategy for U.S. equities.
 
+This project is inspired by the research paper:
+
+> **A Profitable Day Trading Strategy For The U.S. Equity Market**
+> Carlo Zarattini, Andrea Barbon, Andrew Aziz
+> SSRN 4729284
+
+The backtester filters liquid and volatile U.S. stocks, ranks them using relative opening volume, and evaluates a 5-minute ORB strategy.
+
+## Strategy Overview
+
+### 1. Stock Filtering
+
+Stocks must satisfy the following conditions:
+
+* Stock price ≥ **$5**
+* 14-day average daily volume ≥ **1,000,000 shares**
+* 14-day ATR ≥ **$0.50**
+
+### 2. Relative Volume Ranking
+
+For each stock, the relative opening volume is calculated as:
+
+```text
+Relative Volume =
+Current day's first 5-minute volume
+-----------------------------------
+Average first 5-minute volume over the previous 14 trading days
 ```
+
+Stocks are ranked by this score, and the top candidates are selected for the ORB strategy.
+
+### 3. Opening Range Breakout
+
+The first **5-minute candle** defines the opening range.
+
+#### Long
+
+If the first 5-minute candle is bullish:
+
+```text
+Entry: Break above the first 5-minute high
+Stop Loss: Entry Price - 10% of 14-day ATR
+Exit: Market close
+```
+
+#### Short
+
+If the first 5-minute candle is bearish:
+
+```text
+Entry: Break below the first 5-minute low
+Stop Loss: Entry Price + 10% of 14-day ATR
+Exit: Market close
+```
+
+The daily portfolio return is calculated using the top 20 valid candidates.
+
+## Project Structure
+
+```text
+obr-strategy/
+├── backtest.py
+├── filters/
+│   ├── basic_filter.py
+│   └── relative_volume_score.py
+├── returncalc/
+│   └── daily_return.py
+├── tests/
+└── gen_data/
+```
+
+## Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/pderer/obr-strategy.git
+cd obr-strategy
+```
+
+Clone the U.S. stock symbol repository:
+
+```bash
 git clone https://github.com/rreichel3/US-Stock-Symbols.git
 ```
 
-# Manual
-```
-python backtest.py -h
-python backtest.py --start_date 2024-09-13 --end_date 2024-09-13
+Install dependencies:
+
+```bash
+pip install pandas numpy yfinance pytz
 ```
 
-# Result
+## Usage
+
+Display available options:
+
+```bash
+python backtest.py -h
 ```
-   Ticker  Daily Return
-0    SILK      0.000182
-1    ADBE     -0.000976
-2    SCHW     -0.002175
-3    VSAT     -0.008356
-4    UBER     -0.003159
-5    ORCL      0.054739
-6     RLJ     -0.002155
-7    ENVX     -0.007061
-8     WFC     -0.003215
-9     PCT      0.041420
-10  FWONK     -0.001742
-11   ETSY      0.011364
-12    MCW      0.023438
-13   RPAY     -0.003412
-14   TNON     -0.013942
-15   APLS      0.014567
-16   LYFT     -0.004662
-17      U     -0.006571
-18    KGC     -0.003281
-19      W     -0.005045
-Hit Ratio: 30.00%
-Daily Total Return: 8.00%
+
+Run a backtest:
+
+```bash
+python backtest.py \
+    --start_date <START_DATE> \
+    --end_date <END_DATE>
 ```
+
+For example:
+
+```bash
+python backtest.py \
+    --start_date 2026-08-18 \
+    --end_date 2026-08-18
+```
+
+Dates must use the `YYYY-MM-DD` format.
+
+Because the backtester uses 5-minute historical data from Yahoo Finance, the current implementation is intended for relatively recent dates.
+
+## Output
+
+Backtest results are stored under:
+
+```text
+gen_data/
+└── YYYY-MM-DD/
+    ├── filtered_stocks.csv
+    ├── volume_ratio_score.csv
+    ├── daily_return.csv
+    └── result.csv
+```
+
+The console also prints summary statistics such as:
+
+```text
+Individual Stock Hit Ratio Mean
+Daily Return Mean
+Positive Daily Return Ratio
+Cumulative Daily Return
+```
+
+## Disclaimer
+
+This project is intended for **research and educational purposes only**.
+
+Backtest results do not guarantee future performance and should not be considered financial advice.
