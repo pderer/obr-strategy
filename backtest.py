@@ -18,12 +18,18 @@ pd.options.mode.copy_on_write = True
 
 eastern = pytz.timezone("America/New_York")
 
+stock_symbols_path = os.path.join(
+    current_dir,
+    "US-Stock-Symbols",
+    "all",
+    "all_tickers.txt",
+)
 
 def basic_fitering(start_date_time, end_date_time, date_dir):
     print("---------------basic filtering start-------------------")
     # 주식 목록 (필요시 Nasdaq 주식 목록을 사용)
     stock_df = pd.read_csv(
-        "/Users/pderer/trading/dev/US-Stock-Symbols/all/all_tickers.txt",
+        stock_symbols_path,
         header=None,
         names=["Symbol"],
     )
