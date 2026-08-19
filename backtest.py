@@ -18,8 +18,9 @@ pd.options.mode.copy_on_write = True
 
 eastern = pytz.timezone("America/New_York")
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 stock_symbols_path = os.path.join(
-    current_dir,
+    BASE_DIR,
     "US-Stock-Symbols",
     "all",
     "all_tickers.txt",
@@ -97,7 +98,7 @@ def main():
     args = parser.parse_args()
 
     current_dir = os.getcwd()
-    gen_data_dir = os.path.join(current_dir, "gen_data")
+    gen_data_dir = os.path.join(BASE_DIR, "gen_data")
     os.makedirs(gen_data_dir, exist_ok=True)
 
     # 입력받은 시작 및 종료 날짜를 datetime 객체로 변환
@@ -113,13 +114,14 @@ def main():
     # 미국 공휴일 캘린더 설정
     us_calendar = USFederalHolidayCalendar()
 
+    custom_business_day = pd.offsets.CustomBusinessDay(n=-14, calendar=us_calendar)
+
     if (
         os.path.isdir(os.path.join(gen_data_dir, temp_start_date.strftime("%Y-%m-%d")))
         is False
     ):
         today = datetime.now(eastern)
         today = today.replace(tzinfo=None)
-        custom_business_day = pd.offsets.CustomBusinessDay(n=-14, calendar=us_calendar)
         temp_date_14_business_days_ago = (
             pd.to_datetime(temp_start_date) + custom_business_day
         ).to_pydatetime()
